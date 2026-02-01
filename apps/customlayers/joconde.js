@@ -1,11 +1,16 @@
 mviewer.customLayers.joconde = (function () {
   /**
+   * Global config
+   */
+  const proxy = "https://cors-anywhere.herokuapp.com/";
+
+  /**
    * Layers config
    */
   const layerId = "joconde";
-  let allAuteurs = [];
 
   const vectorSource = new ol.source.Vector();
+
   const clusterSource = new ol.source.Cluster({
     distance: 0,
     source: vectorSource,
@@ -32,7 +37,7 @@ mviewer.customLayers.joconde = (function () {
     style: getStyle,
   });
 
-  let legend = {};
+  new CustomLayer(layerId, layer, {});
 
   /**
    * Search art by auteur
@@ -56,10 +61,9 @@ mviewer.customLayers.joconde = (function () {
 
       // &facets%5Bauthors%5D%5B0%5D=Perret%20Auguste%20(architecte)`;
 
-      const proxy = "https://cors-anywhere.herokuapp.com/";
-
       // On encode les paramètres pour gérer les espaces et caractères spéciaux
-      const url = proxy + baseUrl + params;
+      // const url = proxy + baseUrl + params;
+      const url = (window.location.hostname === "localhost" ? proxy : "") + baseUrl;
       console.log("url :", url);
 
       const response = await fetch(url);
@@ -73,10 +77,7 @@ mviewer.customLayers.joconde = (function () {
       data.hits.forEach((musee) => {
         // console.log(musee);
 
-        if (
-          musee._source.POP_COORDONNEES?.lon &&
-          musee._source.POP_COORDONNEES?.lat
-        ) {
+        if (musee._source.POP_COORDONNEES?.lon && musee._source.POP_COORDONNEES?.lat) {
           const feature = new ol.Feature({
             geometry: new ol.geom.Point(
               ol.proj.fromLonLat([
@@ -84,7 +85,7 @@ mviewer.customLayers.joconde = (function () {
                 musee._source.POP_COORDONNEES.lat,
                 // musee._associatedNotices[0].notices[0].POP_COORDONNEES.lon,
                 // musee._associatedNotices[0].notices[0].POP_COORDONNEES.lat,
-              ]),
+              ])
             ),
             // TODO add props
             // auteur: musee._source.authors,
@@ -106,7 +107,287 @@ mviewer.customLayers.joconde = (function () {
   }
 
   /**
-   * List all auteurs
+   * Init search input
+   */
+  function initSearchInput() {
+    let debounceTimer;
+    const suggestionsList = document.getElementById("suggestions");
+    const input = document.getElementById("search");
+
+    input.addEventListener("input", (e) => {
+      const valeur = e.target.value;
+
+      // On annule le timer précédent à chaque nouvelle lettre
+      clearTimeout(debounceTimer);
+
+      // Si l'input est trop court, on vide les suggestions
+      if (valeur.length < 2) {
+        suggestionsList.innerHTML = "";
+        return;
+      }
+
+      // On lance le timer de 300ms
+      debounceTimer = setTimeout(() => {
+        getSuggestions(valeur);
+      }, 300);
+    });
+
+    // recherche avec la touche enter
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        console.log("Recherche keydown enter :", event.target.value);
+        searchAuteur(event.target.value);
+      }
+    });
+    initClearInputBtn();
+  }
+
+  // TODO récupérer uniquement l'attribut AUTR
+  async function getSuggestions(recherche) {
+    const baseUrl = "https://api.pop.culture.gouv.fr/search/advanced";
+
+    const bodyQuery = {
+      bases: ["joconde", "merimee"],
+      crits: [
+        {
+          crits: [
+            {
+              base: "joconde",
+              fields: "AUTR",
+              operator: "*",
+              value: recherche,
+            },
+          ],
+        },
+        {
+          crits: [
+            {
+              base: "merimee",
+              fields: "AUTR",
+              operator: "*",
+              value: recherche,
+            },
+          ],
+          combinator: "OR",
+        },
+      ],
+      size: 30,
+      from: 0,
+    };
+
+    try {
+      const url = (window.location.hostname === "localhost" ? proxy : "") + baseUrl;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bodyQuery),
+      });
+      const data = await response.json();
+      // console.log(data.hits);
+      cleanSuggestions(data.hits, recherche);
+    } catch (error) {
+      console.error("Erreur getSuggestions :", error);
+    }
+  }
+
+  function normalizeNoAccent(str) {
+    return str
+      .normalize("NFD") // décompose les lettres accentuées
+      .replace(/[\u0300-\u036f]/g, "") // supprime les accents
+      .toLowerCase()
+      .trim();
+  }
+
+  function cleanSuggestions(hits, recherche) {
+    const auteursMap = new Map();
+
+    hits.forEach((hit) => {
+      hit._source.authors.forEach((author) => {
+        const cleanedAuthor = author.split("(")[0].trim();
+        const key = normalizeNoAccent(cleanedAuthor);
+        if (
+          normalizeNoAccent(cleanedAuthor.toLowerCase()).includes(
+            normalizeNoAccent(recherche.toLowerCase())
+          )
+        ) {
+          if (auteursMap.has(key)) {
+            const existing = auteursMap.get(key);
+            // si la version existante n'a pas d'accents mais que la nouvelle en a, on remplace
+            if (
+              normalizeNoAccent(existing) === normalizeNoAccent(cleanedAuthor) &&
+              existing !== cleanedAuthor
+            ) {
+              if (
+                existing === existing.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+              ) {
+                auteursMap.set(key, cleanedAuthor); // garde la version accentuée
+              }
+            }
+          } else {
+            auteursMap.set(key, cleanedAuthor);
+          }
+        }
+      });
+    });
+    const auteursAlph = [...auteursMap.values()].sort((a, b) => a.localeCompare(b));
+    // console.log(auteursAlph);
+    addSuggestions(auteursAlph);
+    // console.log("Résultats authors :", data.hits[0]._source.authors);
+    // console.log("Résultats AUTR :", data.hits[0]._source.AUTR);
+  }
+
+  function addSuggestions(matches) {
+    const input = document.getElementById("search");
+    const ul = document.getElementById("suggestions");
+    ul.innerHTML = "";
+    ul.classList.remove("d-none");
+
+    matches.forEach((match) => {
+      const li = document.createElement("li");
+      li.className = "list-group-item list-group-item-action";
+      li.textContent = match;
+
+      li.addEventListener("click", () => {
+        input.value = match;
+        ul.innerHTML = "";
+        ul.classList.add("d-none");
+        console.log("Valeur sélectionnée :", match);
+        searchAuteur(match);
+      });
+
+      ul.appendChild(li);
+    });
+  }
+
+  function initClearInputBtn() {
+    const btn = document.getElementById("clear-input");
+    const ul = document.getElementById("suggestions");
+    const input = document.getElementById("search");
+
+    btn.addEventListener("click", () => {
+      input.value = "";
+      ul.innerHTML = "";
+      ul.classList.add("d-none");
+      vectorSource.clear();
+    });
+  }
+
+  const handle = function (clusters, views) {
+    if (clusters.length > 0) {
+      var l = mviewer.getLayer(layerId);
+      var elements = [];
+      var html;
+      var panel = "";
+
+      clusters.forEach((c) => {
+        let featuresProps = c
+          ?.getProperties()
+          ?.features.map((feature) =>
+            feature?.properties ? feature.properties || feature : feature.getProperties()
+          );
+
+        // Tableau dynamique titres + liens
+        let htmlContent = "";
+
+        const clusterFeatures = c?.getProperties()?.features || [];
+        const clusterSize = clusterFeatures.length;
+
+        featuresProps
+          .sort((a, b) => {
+            const titreA = (a.titre || a.appellation || "").toLowerCase();
+            const titreB = (b.titre || b.appellation || "").toLowerCase();
+            return titreA.localeCompare(titreB, "fr");
+          })
+          .forEach((props) => {
+            const titre = props.titre || props.appellation || "";
+            htmlContent += `
+              <li>
+                <a target="_blank" href="https://pop.culture.gouv.fr/notice/joconde/${props.reference}">
+                  ${titre} <i class="ri-external-link-line"></i><br>
+                </a>
+                <div class="props-auteur">
+                  ${props.auteur}
+                </div>
+              </li>
+            `;
+          });
+
+        // Agrège les valeurs uniques des propriétés supplémentaires (ADRESSE, DPT, STRUCTURE)
+        const datasuppl = ["auteur", "localisation", "ville"].reduce((acc, key) => {
+          // Filtre les valeurs nulles et les rend uniques
+          const values = c
+            ?.getProperties()
+            ?.features.map((feature) => feature.getProperties()[key])
+            .filter((value) => value != null);
+          // Récupère les valeurs uniques. Attention si données pas prop
+          //return { ...acc, [key]: [...new Set(values)] };
+          // Récupère la 1ère valeur
+          return { ...acc, [key]: values[0] || null };
+        }, {});
+
+        // Crée une nouvelle feature avec les coordonnées du cluster et les informations agrégées
+        let newFeature = new ol.Feature({
+          geometry: new ol.geom.Point(c?.getGeometry().getCoordinates()),
+          clusterSize: clusterSize,
+          htmlContent,
+          ...datasuppl,
+        });
+
+        // Ajoute la nouvelle feature au tableau des éléments
+        elements.push(newFeature);
+      });
+
+      // Génère le contenu HTML pour les informations des clusters
+      if (l.template) {
+        html = info.templateHTMLContent(elements, l);
+      } else {
+        html = info.formatHTMLContent(elements, l);
+      }
+
+      // Détermine le type de panneau à utiliser en fonction de la configuration mobile ou desktop
+      if (configuration.getConfiguration().mobile) {
+        panel = "modal-panel";
+      } else {
+        panel = "right-panel";
+      }
+
+      // Récupère la vue associée au panneau
+      var view = views[panel];
+
+      // Ajoute une nouvelle couche à la vue avec les informations des clusters
+      view.layers.push({
+        id: view.layers.length + 1, // Identifiant de la couche
+        firstlayer: true, // Indique s'il s'agit de la première couche
+        manyfeatures: elements.length > 1, // Indique s'il y a plusieurs features
+        nbfeatures: elements.length, // Nombre de features
+        name: l.name, // Nom de la couche
+        layerid: layerId, // Identifiant de la couche
+        theme_icon: l.icon, // Icône du thème
+        html: html, // Contenu HTML généré
+      });
+    }
+  };
+
+  /**
+   * Init
+   */
+  async function init() {
+    // searchAuteur("Aachen Hans von (d’après)"); // TODO delete*
+    // searchAuteur("Perret Auguste (architecte)"); // TODO delete*
+    // searchAuteur("Rodin Auguste (1840-1917)"); // TODO delete*
+
+    // allAuteurs = await getAllAuteurs();
+    // allAuteurs = cleanAuteurs(allAuteurs);
+    // initSearchInput(allAuteurs);
+    initSearchInput();
+
+    // getAllAuteursWithCount();
+  }
+
+  /**
+   * old functions 4 joconde api
    */
   async function getAllAuteurs() {
     const url =
@@ -124,8 +405,6 @@ mviewer.customLayers.joconde = (function () {
       `&from=0&size=0` + // size=0 car on ne veut pas les notices, juste la liste des auteurs
       `&facets[base][0]=joconde` +
       `&facets[authors][0]=*`; // Le wildcard * tente de tout lister
-
-    const proxy = "https://cors-anywhere.herokuapp.com/";
 
     // On encode les paramètres pour gérer les espaces et caractères spéciaux
     const url0 = proxy + baseUrl + params;
@@ -152,14 +431,23 @@ mviewer.customLayers.joconde = (function () {
   }
 
   async function getAllAuteursWithCount() {
-    const url =
+    const url_ =
       "https://data.culture.gouv.fr/api/explore/v2.1/catalog/datasets/base-joconde-extrait/records" +
       "?select=auteur,count(*) as count" +
       "&group_by=auteur" +
       "&limit=20000" +
       '&where=region="Ile-de-France" AND auteur IS NOT NULL AND auteur != "anonyme"';
 
-    // console.log(url);
+    const search = "sout";
+
+    const url =
+      "https://data.culture.gouv.fr/api/explore/v2.1/catalog/datasets/base-joconde-extrait/records" +
+      "?select=auteur,count(*) as count" +
+      "&group_by=auteur" +
+      "&limit=20000" +
+      `&WHERE auteur LIKE "%${search}%"`;
+
+    console.log(url);
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -168,7 +456,8 @@ mviewer.customLayers.joconde = (function () {
 
     const data = await response.json();
 
-    // console.log(data.results.length);
+    console.log(data.results.length);
+    console.log(data.results);
 
     data.results.forEach((res) => {
       if (res.count > 9999) {
@@ -208,9 +497,6 @@ mviewer.customLayers.joconde = (function () {
     return Array.from(auteursMap.values());
   }
 
-  /**
-   * Init search input
-   */
   function initSearchInput_(allAuteurs) {
     const auteursLower = allAuteurs.map((a) => a.toLowerCase());
 
@@ -271,250 +557,6 @@ mviewer.customLayers.joconde = (function () {
       }
     });
   }
-
-  function initSearchInput() {
-    let debounceTimer;
-    const suggestionsList = document.getElementById("suggestions");
-    const input = document.getElementById("search");
-
-    input.addEventListener("input", (e) => {
-      const valeur = e.target.value;
-
-      // On annule le timer précédent à chaque nouvelle lettre
-      clearTimeout(debounceTimer);
-
-      // Si l'input est trop court, on vide les suggestions
-      if (valeur.length < 2) {
-        suggestionsList.innerHTML = "";
-        return;
-      }
-
-      // On lance le timer de 300ms
-      debounceTimer = setTimeout(() => {
-        getSuggestions(valeur);
-      }, 300);
-    });
-
-    // recherche avec la touche enter
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        console.log("Recherche keydown enter :", event.target.value);
-        searchAuteur(event.target.value);
-      }
-    });
-  }
-
-  async function getSuggestions(recherche) {
-    const proxy = "https://cors-anywhere.herokuapp.com/";
-    const url = "https://api.pop.culture.gouv.fr/search/advanced";
-
-    const bodyQuery = {
-      bases: ["joconde"],
-      crits: [
-        {
-          crits: [
-            {
-              base: "joconde",
-              fields: "AUTR",
-              operator: "^",
-              value: recherche,
-            },
-          ],
-        },
-      ],
-      size: 8,
-      from: 0,
-    };
-
-    try {
-      const response = await fetch(proxy + url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(bodyQuery),
-      });
-
-      const data = await response.json();
-      cleanSuggestions(data.hits, recherche);
-    } catch (error) {
-      console.error("Erreur lors de la requête avancée :", error);
-    }
-  }
-
-  function cleanSuggestions(hits, recherche) {
-    const auteursSet = new Set();
-    hits.forEach((hit) => {
-      // console.log(hit._source.authors);
-
-      hit._source.authors.forEach((author) => {
-        if (author.toUpperCase().includes(recherche.toUpperCase())) {
-          auteursSet.add(author);
-        } else {
-          // console.log("on garde pas : ", author);
-        }
-      });
-    });
-    console.log(auteursSet);
-
-    addSuggestions(Array.from(auteursSet));
-    // console.log("Résultats authors :", data.hits[0]._source.authors);
-    // console.log("Résultats AUTR :", data.hits[0]._source.AUTR);
-  }
-
-  function addSuggestions(matches) {
-    const ul = document.getElementById("suggestions");
-    const input = document.getElementById("search");
-    ul.innerHTML = "";
-
-    matches.forEach((match) => {
-      const li = document.createElement("li");
-      li.className = "list-group-item list-group-item-action";
-      li.textContent = match;
-
-      li.addEventListener("click", () => {
-        input.value = match;
-        ul.innerHTML = "";
-        ul.classList.add("d-none");
-        console.log("Valeur sélectionnée :", match);
-        searchAuteur(match);
-      });
-
-      ul.appendChild(li);
-    });
-  }
-
-  function initClearInputBtn() {
-    const btn = document.getElementById("clear-input");
-    const ul = document.getElementById("suggestions");
-    const input = document.getElementById("search");
-
-    btn.addEventListener("click", () => {
-      input.value = "";
-      ul.innerHTML = "";
-      ul.classList.add("d-none");
-      vectorSource.clear();
-    });
-  }
-
-  const handle = function (clusters, views) {
-    if (clusters.length > 0) {
-      var l = mviewer.getLayer(layerId);
-      var elements = [];
-      var html;
-      var panel = "";
-
-      clusters.forEach((c) => {
-        let featuresProps = c
-          ?.getProperties()
-          ?.features.map((feature) =>
-            feature?.properties
-              ? feature.properties || feature
-              : feature.getProperties(),
-          );
-
-        // Tableau dynamique titres + liens
-        let htmlContent = "";
-
-        const clusterFeatures = c?.getProperties()?.features || [];
-        const clusterSize = clusterFeatures.length;
-
-        featuresProps
-          .sort((a, b) => {
-            const titreA = (a.titre || a.appellation || "").toLowerCase();
-            const titreB = (b.titre || b.appellation || "").toLowerCase();
-            return titreA.localeCompare(titreB, "fr");
-          })
-          .forEach((props) => {
-            const titre = props.titre || props.appellation || "";
-            htmlContent += `
-              <li>
-                <a target="_blank" href="https://pop.culture.gouv.fr/notice/joconde/${props.reference}">
-                  ${titre} <i class="ri-external-link-line"></i><br>
-                </a>
-                <div class="props-auteur">
-                  ${props.auteur}
-                </div>
-              </li>
-            `;
-          });
-
-        // Agrège les valeurs uniques des propriétés supplémentaires (ADRESSE, DPT, STRUCTURE)
-        const datasuppl = ["auteur", "localisation", "ville"].reduce(
-          (acc, key) => {
-            // Filtre les valeurs nulles et les rend uniques
-            const values = c
-              ?.getProperties()
-              ?.features.map((feature) => feature.getProperties()[key])
-              .filter((value) => value != null);
-            // Récupère les valeurs uniques. Attention si données pas prop
-            //return { ...acc, [key]: [...new Set(values)] };
-            // Récupère la 1ère valeur
-            return { ...acc, [key]: values[0] || null };
-          },
-          {},
-        );
-
-        // Crée une nouvelle feature avec les coordonnées du cluster et les informations agrégées
-        let newFeature = new ol.Feature({
-          geometry: new ol.geom.Point(c?.getGeometry().getCoordinates()),
-          clusterSize: clusterSize,
-          htmlContent,
-          ...datasuppl,
-        });
-
-        // Ajoute la nouvelle feature au tableau des éléments
-        elements.push(newFeature);
-      });
-
-      // Génère le contenu HTML pour les informations des clusters
-      if (l.template) {
-        html = info.templateHTMLContent(elements, l);
-      } else {
-        html = info.formatHTMLContent(elements, l);
-      }
-
-      // Détermine le type de panneau à utiliser en fonction de la configuration mobile ou desktop
-      if (configuration.getConfiguration().mobile) {
-        panel = "modal-panel";
-      } else {
-        panel = "right-panel";
-      }
-
-      // Récupère la vue associée au panneau
-      var view = views[panel];
-
-      // Ajoute une nouvelle couche à la vue avec les informations des clusters
-      view.layers.push({
-        id: view.layers.length + 1, // Identifiant de la couche
-        firstlayer: true, // Indique s'il s'agit de la première couche
-        manyfeatures: elements.length > 1, // Indique s'il y a plusieurs features
-        nbfeatures: elements.length, // Nombre de features
-        name: l.name, // Nom de la couche
-        layerid: layerId, // Identifiant de la couche
-        theme_icon: l.icon, // Icône du thème
-        html: html, // Contenu HTML généré
-      });
-    }
-  };
-
-  /**
-   * Init
-   */
-  async function init() {
-    // searchAuteur("Aachen Hans von (d’après)"); // TODO delete*
-    // searchAuteur("Perret Auguste (architecte)"); // TODO delete*
-    // searchAuteur("SOUTINE Chaïm"); // TODO delete*
-    // searchAuteur("Rodin Auguste (1840-1917)"); // TODO delete*
-
-    // allAuteurs = await getAllAuteurs();
-    // allAuteurs = cleanAuteurs(allAuteurs);
-    // initSearchInput(allAuteurs);
-    initSearchInput();
-    initClearInputBtn();
-  }
-
-  new CustomLayer(layerId, layer, legend);
 
   return {
     joconde: layerId,

@@ -6,13 +6,23 @@
 -->
 <html>
   <head>
-    <title>Astral by HTML5 UP</title>
+    <title>Portfolio</title>
     <meta charset="utf-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, user-scalable=no"
     />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
     <link rel="stylesheet" href="assets/css/main.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/ol@v10.3.1/ol.css"
+    />
     <noscript
       ><link rel="stylesheet" href="assets/css/noscript.css"
     /></noscript>
@@ -20,62 +30,300 @@
   <body class="is-preload">
     <!-- Wrapper-->
     <div id="wrapper">
+      <h1>Mathilde Marchand</h1>
+      <h4>Carto et data</h4>
+
       <!-- Nav -->
       <nav id="nav">
-        <a href="#" class="icon solid fa-home"><span>Home</span></a>
-        <a href="#work" class="icon solid fa-folder"><span>Work</span></a>
+        <a href="#" class="icon solid fa-comment"><span>About</span></a>
+        <a href="#cv" class="icon solid fa-user-graduate"
+          ><span>Curriculum Vitae</span></a
+        >
+        <a href="#work" class="icon solid fa-globe"><span>Apps</span></a>
         <a href="#contact" class="icon solid fa-envelope"
           ><span>Contact</span></a
-        >
-        <a href="https://twitter.com/ajlkn" class="ri-arrow-left-up-line"
-          ><span>Twitter</span></a
         >
       </nav>
 
       <!-- Main -->
       <div id="main">
         <!-- Me -->
-        <article id="home" class="panel intro">
+        <article id="me" class="panel">
           <header>
-            <h1>Mathilde Marchand</h1>
-            <p>Carto et data</p>
+            <h2>About</h2>
           </header>
-          <a href="#work" class="jumplink pic">
-            <span class="arrow icon solid fa-chevron-right"
-              ><span>See my work</span></span
+          <section>
+            <p>
+              Géomaticienne de formation passionnée par les cartes et convaincue
+              par l'open-source
+            </p>
+          </section>
+        </article>
+
+        <!-- cv -->
+        <article id="cv" class="panel intro">
+          <div class="container">
+            <ul
+              class="nav nav-pills justify-content-center mb-4"
+              id="cvTabs"
+              role="tablist"
             >
-            <img src="images/me.jpg" alt="" />
-          </a>
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link active"
+                  id="jobs-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#jobs"
+                  type="button"
+                  role="tab"
+                >
+                  Emplois
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link"
+                  id="stages-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#stages"
+                  type="button"
+                  role="tab"
+                >
+                  Stages
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link"
+                  id="education-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#education"
+                  type="button"
+                  role="tab"
+                >
+                  Formation
+                </button>
+              </li>
+            </ul>
+            <div class="tab-content" id="cvTabsContent">
+              <div class="tab-pane fade show active" id="jobs" role="tabpanel">
+                <div id="jobs">
+                  <div
+                    class="accordion accordion-flush"
+                    id="accordionFlushJobs"
+                  >
+                    <div class="accordion-item">
+                      <h2 class="accordion-header" id="flush-headingOne">
+                        <button
+                          id="sesan-map"
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#flush-collapseOne"
+                          aria-expanded="false"
+                          aria-controls="flush-collapseOne"
+                        >
+                          SESAN
+                        </button>
+                      </h2>
+                      <div
+                        id="flush-collapseOne"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="flush-headingOne"
+                        data-bs-parent="#accordionFlushJobs"
+                      >
+                        <div class="accordion-body">
+                          Administration et développement de la plateforme
+                          <a target="_blank" href="https://santegraphie.fr/"
+                            >Santégraphie</a
+                          >
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header" id="flush-headingTwo">
+                        <button
+                          id="coexya-map"
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#flush-collapseTwo"
+                          aria-expanded="false"
+                          aria-controls="flush-collapseTwo"
+                        >
+                          COEXYA
+                        </button>
+                      </h2>
+                      <div
+                        id="flush-collapseTwo"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="flush-headingTwo"
+                        data-bs-parent="#accordionFlushJobs"
+                      >
+                        <div class="accordion-body">
+                          Développeuse SIG pour le compte du CEA.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-pane fade" id="stages" role="tabpanel">
+                <div id="stages">
+                  <div
+                    class="accordion accordion-flush"
+                    id="accordionFlushStages"
+                  >
+                    <div class="accordion-item">
+                      <h2 class="accordion-header" id="flush-headingThree">
+                        <button
+                          id="brest-map"
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#flush-collapseThree"
+                          aria-expanded="false"
+                          aria-controls="flush-collapseThree"
+                        >
+                          Brest Métropole
+                        </button>
+                      </h2>
+                      <div
+                        id="flush-collapseThree"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="flush-headingThree"
+                        data-bs-parent="#accordionFlushStages"
+                      >
+                        <div class="accordion-body">
+                          Placeholder content for this accordion, which is
+                          intended to demonstrate the
+                          <code>.accordion-flush</code> class.
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header" id="flush-headingFive">
+                        <button
+                          id="lorient-map"
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#flush-collapseFive"
+                          aria-expanded="false"
+                          aria-controls="flush-collapseFive"
+                        >
+                          Ville de Lorient
+                        </button>
+                      </h2>
+                      <div
+                        id="flush-collapseFive"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="flush-headingFive"
+                        data-bs-parent="#accordionFlushStages"
+                      >
+                        <div class="accordion-body">
+                          Collecte et valorisation de données historiques
+                          <a
+                            href="https://storymaps.arcgis.com/stories/71b6047136984e69b23962a120394c67"
+                            target="_blank"
+                            class="btn btn-outline-primary"
+                          >
+                            Portrait historique de la ville de Lorient
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tab-pane fade" id="education" role="tabpanel">
+                <div id="education">
+                  <div
+                    class="accordion accordion-flush"
+                    id="accordionFlushEducation"
+                  >
+                    <div class="accordion-item">
+                      <h2 class="accordion-header" id="flush-headingFour">
+                        <button
+                          id="lyon-map"
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#flush-collapseFour"
+                          aria-expanded="false"
+                          aria-controls="flush-collapseFour"
+                        >
+                          Master Géomatique
+                        </button>
+                      </h2>
+                      <div
+                        id="flush-collapseFour"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="flush-headingFour"
+                        data-bs-parent="#accordionFlushEducation"
+                      >
+                        <div class="accordion-body">
+                          Placeholder content for this accordion, which is
+                          intended to demonstrate the
+                          <code>.accordion-flush</code> class.
+                        </div>
+                      </div>
+                    </div>
+                    <div class="accordion-item">
+                      <h2 class="accordion-header" id="flush-headingSix">
+                        <button
+                          id="sorbonne-map"
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#flush-collapseSix"
+                          aria-expanded="false"
+                          aria-controls="flush-collapseSix"
+                        >
+                          Licence Géographie et aménagement
+                        </button>
+                      </h2>
+                      <div
+                        id="flush-collapseSix"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="flush-headingSix"
+                        data-bs-parent="#accordionFlushEducation"
+                      >
+                        <div class="accordion-body">
+                          <p>Sorbonne Université</p>
+                          <p><a id="krakow-map">Université Jagellone</a></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="map"></div>
+          <script src="https://cdn.jsdelivr.net/npm/ol@v10.3.1/dist/ol.js"></script>
         </article>
 
         <!-- Work -->
         <article id="work" class="panel">
           <header>
             <h2>Work</h2>
+            <p>Applications cartographiques</p>
           </header>
-          <p>Applications cartographiques</p>
           <section>
-            <div class="row">
-              <!-- <div class="col-4 col-6-medium col-12-small">
-                <a href="#" class="blue-box"></a>
-              </div> -->
-
-              <div class="col-4 col-6-medium col-12-small">
-                <a
-                  href="https://mathilde-marchand.github.io/mviewer/?config=apps/museums.xml"
-                  target="_blank"
-                  class="blue-box"
-                  >POP</a
-                >
+            <div class="container">
+              <div class="row">
+                <div class="col-md-4">
+                  <a
+                    href="https://mathilde-marchand.github.io/mviewer/?config=apps/museums.xml"
+                    target="_blank"
+                    class="btn btn-outline-primary"
+                    >Collections des musées de France</a
+                  >
+                </div>
               </div>
-
-              <!-- <div class="col-4 col-6-medium col-12-small">
-                <a
-                  href="https://mathilde-marchand.github.io/mviewer/?config=apps/default.xml"
-                  target="_blank"
-                  class="blue-box"
-                ></a>
-              </div> -->
             </div>
           </section>
         </article>
@@ -85,7 +333,19 @@
           <header>
             <h2>Contact Me</h2>
           </header>
-          <form action="#" method="post">
+          <a
+            href="https://github.com/mathilde-marchand"
+            target="_blank"
+            class="icon brands fa-github"
+          ></a>
+
+          <a
+            href="https://www.linkedin.com/in/mathilde-marchand-041289171/"
+            target="_blank"
+            class="icon brands fa-linkedin"
+          ></a>
+
+          <!-- <form action="#" method="post">
             <div>
               <div class="row">
                 <div class="col-6 col-12-medium">
@@ -109,7 +369,7 @@
                 </div>
               </div>
             </div>
-          </form>
+          </form> -->
         </article>
       </div>
 
@@ -128,5 +388,12 @@
     <script src="assets/js/breakpoints.min.js"></script>
     <script src="assets/js/util.js"></script>
     <script src="assets/js/main.js"></script>
+    <script src="assets/js/map.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+      crossorigin="anonymous"
+    ></script>
+    -
   </body>
 </html>

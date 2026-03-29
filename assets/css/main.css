@@ -2118,10 +2118,6 @@ body.is-preload #wrapper {
   transition: color 0.25s ease-in-out;
 }
 
-#footer a:hover {
-  color: #f77f00;
-}
-
 #footer .copyright {
   list-style: none;
   padding-left: 0;
@@ -2201,4 +2197,9 @@ body.is-preload #wrapper {
   border-top-right-radius: 1em;
   border-bottom-right-radius: 1em;
   overflow: hidden; /* CRUCIAL : pour couper les coins des tuiles de la carte */
+}
+
+/* Link */
+a:hover {
+  color: #f77f00;
 }
